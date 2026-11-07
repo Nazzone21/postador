@@ -1,0 +1,47 @@
+{
+  "name": "cadencia",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n site,worker -c blue,magenta \"next dev\" \"npm:worker\"",
+    "dev:site": "next dev",
+    "worker": "tsx src/worker/index.ts",
+    "build": "next build",
+    "start": "concurrently -k -n site,worker \"next start\" \"npm:worker\"",
+    "db:push": "prisma db push",
+    "postinstall": "prisma generate",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "ffmpeg-static": "^5.3.0",
+    "jose": "^6.2.15",
+    "next": "16.4.5",
+    "prisma": "^6.19.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^10.0.6",
+    "dejavu-fonts-ttf": "^2.37.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.5",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "ffmpeg-static@5.3.0": true,
+    "esbuild@0.28.2": true
+  }
+}

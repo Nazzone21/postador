@@ -1,0 +1,154 @@
+// Banco de dados do Cadência.
+// Em desenvolvimento usa SQLite (arquivo local). Para produção, troque o
+// provider para "postgresql" e a DATABASE_URL para o seu Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  brands   Brand[]
+  accounts SocialAccount[]
+  media    Media[]
+  posts    Post[]
+}
+
+// Uma "página": a marca (nome, @, avatar) que agrupa as contas das redes.
+model Brand {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  handle     String
+  avatarPath String?
+  createdAt  DateTime @default(now())
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts SocialAccount[]
+
+  @@index([userId])
+}
+
+// Conta conectada em uma rede. platform: "instagram" | "youtube" | "simulado"
+model SocialAccount {
+  id                String    @id @default(cuid())
+  userId            String
+  brandId           String
+  platform          String
+  externalId        String
+  username          String
+  profilePictureUrl String?
+  accessTokenEnc    String?
+  refreshTokenEnc   String?
+  tokenExpiresAt    DateTime?
+  createdAt         DateTime  @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  posts Post[]
+
+  @@unique([brandId, platform])
+  @@index([userId])
+}
+
+// Arquivo enviado pelo usuário para a biblioteca. kind: "video" | "image"
+model Media {
+  id           String   @id @default(cuid())
+  userId       String
+  kind         String   @default("video")
+  originalName String
+  path         String // relativo à pasta de armazenamento
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts Post[]
+  items PostItem[]
+
+  @@index([userId])
+}
+
+// type: "REEL" | "POST" | "CAROUSEL" | "STORY" | "YOUTUBE"
+// status: "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED"
+model Post {
+  id             String    @id @default(cuid())
+  userId         String
+  accountId      String
+  mediaId        String // mídia principal (capa, no caso do carrossel)
+  type           String    @default("REEL")
+  caption        String    @default("")
+  title          String    @default("") // YouTube
+  privacy        String    @default("public") // YouTube: public | unlisted | private
+  templateId     String    @default("original")
+  templateText   String    @default("")
+  scheduledAt    DateTime
+  status         String    @default("SCHEDULED")
+  renderedPath   String?
+  externalId     String?
+  permalink      String?
+  error          String?
+  attempts       Int       @default(0)
+  batchId        String?
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  media   Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  events  PostEvent[]
+  items   PostItem[]
+
+  @@index([userId, status])
+  @@index([status, scheduledAt])
+}
+
+// Mídias de um carrossel, na ordem de exibição.
+model PostItem {
+  id           String  @id @default(cuid())
+  postId       String
+  mediaId      String
+  position     Int
+  renderedPath String?
+
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+// Token do Instagram aguardando o usuário escolher qual conta ligar à página.
+model PendingConnection {
+  id        String   @id @default(cuid())
+  userId    String
+  brandId   String
+  platform  String
+  tokenEnc  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Linha do tempo de cada envio ("ver etapas").
+model PostEvent {
+  id      String   @id @default(cuid())
+  postId  String
+  at      DateTime @default(now())
+  level   String   @default("info") // "info" | "error"
+  message String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
